@@ -1,5 +1,5 @@
-# EDA_skeletonscripts
-Bare bones skeleton scripts for EDA
+# Predictive_modeling_skeletonscripts
+Bare bones skeleton scripts for predictive modeling
 
 
 ### **Installation, for `macOS`** do the following: 
