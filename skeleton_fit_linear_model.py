@@ -14,7 +14,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.model_selection import train_test_split 
-from sklearn.metrics import confusion_matrix, accuracy_score, recall_score, precision_score, f1_score
+from sklearn.metrics import confusion_matrix, accuracy_score, recall_score, precision_score, f1_score, roc_curve, roc_auc_score, classification_report
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.datasets import load_iris
 
@@ -74,6 +74,21 @@ def linmap(vector, new_min, new_max):
     scaled_vector = (vector - old_min) / (old_max - old_min) * (new_max - new_min) + new_min
     return scaled_vector
 
+
+def filter_features(X_train,X_test,thresh):
+    
+    #compute correlations and get half the correlations
+    cm = X_train.corr(method = "spearman").abs() #compute correlation matrix    
+    upper = cm.where(np.triu(np.ones(cm.shape), k = 1).astype(bool)) #select upper triangle of matrix
+
+    #find index / indices of feature(s) with correlation above threshold
+    columns_to_drop = [column for column in upper.columns if any(upper[column] > thresh)]
+
+    # Drop features
+    X_train = X_train.drop(columns_to_drop, axis = 1)
+    X_test = X_test.drop(columns_to_drop, axis = 1)
+
+    return X_train, X_test
 
 #%%  main function for cleaning
 def clean_data(df,target_column):
@@ -183,6 +198,10 @@ if __name__ == "__main__":
     X_test  = feature_engineer(X_test,columns_to_interact,columns_to_dummycode)
 
     #%% check model
+    #select features with filtering
+    thresh = 0.95 #remove features that correlate above this threshold
+    X_train, X_test = filter_features(X_train,X_test,thresh)
+
     #plot correlation between regressors
     sns.heatmap(X_train.corr(),vmin=-1,vmax=1)
 
@@ -220,7 +239,28 @@ if __name__ == "__main__":
     plt.ylabel('Actual')
     plt.show()
 
-    print('Precision: ', precision_score(y_test, y_pred))
-    print('Recall: ', recall_score(y_test, y_pred))
-    print('F1-score: ', f1_score(y_test, y_pred))
-    print('Accuracy: ', accuracy_score(y_test, y_pred))
+    print("Training Set Performance:")
+    print(classification_report(y_train, y_pred_train))
+    print("\nTesting Set Performance:")
+    print(classification_report(y_test, y_pred))
+
+    #calculate probabilities
+    y_prob_train = Random_search.predict_proba(X_train)
+    y_prob_test =  Random_search.predict_proba(X_test)
+
+    #calculate baseline and model ROC curves
+    base_fpr,  base_tpr,  _ = roc_curve(y_test, [1 for _ in range(len(y_test))])
+    model_fpr, model_tpr, _ = roc_curve(y_test, y_prob_test[:,1])
+        
+    #plot ROC curves
+    plt.figure(figsize = (6, 5))
+    plt.plot(base_fpr, base_tpr, 'k', label = 'baseline')
+    plt.plot(model_fpr, model_tpr, 'r', label = 'model')
+    plt.legend()
+    plt.xlabel('1 - Specificity (FPR)')
+    plt.ylabel('Sensitivity (TPR)')
+    plt.title('ROC curve')
+    plt.show()
+
+    print(f'Train ROC AUC Score: {roc_auc_score(y_train, y_prob_train[:,1])}')
+    print(f'Test ROC AUC  Score: {roc_auc_score(y_test,  y_prob_test[:,1])}')

@@ -4,7 +4,6 @@ from sqlalchemy import create_engine
 
 import pandas as pd
 
-
 if __name__ == "__main__":
 
     # Before being able to load data, you need a .env file with the following info:
