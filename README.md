@@ -1,5 +1,5 @@
 # Predictive modeling skeletonscripts
-Bare bones skeleton scripts for predictive modeling. The aim of these scripts is to have a set of easily adjustable templates for loading data and fitting predictive models.
+Bare bones skeleton scripts for predictive modeling of cross-sectional data. The aim of these scripts is to have a set of easily adjustable templates for loading data and fitting predictive models.
 
 `example_fit_linear_model.ipynb`, cleans data from a dataset about titanic passenger information, runs simple feature engineering, and fits a logistic regression model to predict if a passenger survived the sinking. It is not intended to showcase the best model for this purpose (the model does alright but other models can do better) or how to best construct a regression model. Instead, the aim is to show how with relatively few modifications, we can turn `skeleton_fit_linear_model` into a functional pipeline.
 

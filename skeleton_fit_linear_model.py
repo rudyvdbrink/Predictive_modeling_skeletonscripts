@@ -1,4 +1,5 @@
 #%% import libraries
+#import libraries
 import os
 import numpy as np
 import pandas as pd
@@ -18,77 +19,8 @@ from sklearn.metrics import confusion_matrix, accuracy_score, recall_score, prec
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.datasets import load_iris
 
-#%%  functions for preprocessing
-
-#check for duplicates
-def check_duplicates(df):
-    has_dup = df.duplicated()
-    true_dup = np.where(has_dup == True)
-    if len(true_dup[0]) > 0:
-        print("Data has", len(true_dup[0]), "duplicates")
-        df.drop_duplicates(keep='first', inplace=True)
-    else:
-        print("No duplicates found")
-    return df
-
-#function for one-hot encoding
-def one_hot(df, column_names):
-    for col in column_names:
-        dummies = pd.get_dummies(df[[col]].astype('category'),drop_first=True)
-        df = pd.concat([df, dummies], axis=1)
-        df = df.drop([col], axis=1)
-    return df
-
-#function for adding interaction terms between all columns
-def add_full_interactions(df,degree=2):
-    poly = PolynomialFeatures(interaction_only=True, include_bias=False, degree=degree)
-    X_poly = poly.fit_transform(df)
-    column_names = list(poly.get_feature_names_out())
-    X_poly = pd.DataFrame(X_poly,columns=column_names)
-    return X_poly
-
-#function for adding interaction terms between select columns
-def add_interactions(df,columns,degree=2):
-    poly = PolynomialFeatures(interaction_only=True, include_bias=False, degree=degree)
-    X_poly = poly.fit_transform(df[columns])
-    column_names = list(poly.get_feature_names_out())
-    X_poly = pd.DataFrame(X_poly,columns=column_names)
-    X_poly = pd.concat([df, X_poly.drop(columns,axis=1)], axis=1)
-    return X_poly
-
-#function for computing sigmoid (e.g. to look at logistic regression fit)
-def sigmoid(x,b):
-    return 1 / (1 + np.exp(-(b+x)))
-
-#min-max scale vector to pre-specified range
-def linmap(vector, new_min, new_max):
-    vector = np.array(vector)
-    old_min = np.min(vector)
-    old_max = np.max(vector)
-    
-    # Avoid division by zero if the old_min equals old_max
-    if old_min == old_max:
-        return np.full_like(vector, new_min if old_min == old_max else new_max)
-    
-    # Scale the vector
-    scaled_vector = (vector - old_min) / (old_max - old_min) * (new_max - new_min) + new_min
-    return scaled_vector
-
-
-def filter_features(X_train,X_test,thresh):
-    
-    #compute correlations and get half the correlations
-    cm = X_train.corr(method = "spearman").abs() #compute correlation matrix    
-    upper = cm.where(np.triu(np.ones(cm.shape), k = 1).astype(bool)) #select upper triangle of matrix
-
-    #find index / indices of feature(s) with correlation above threshold
-    columns_to_drop = [column for column in upper.columns if any(upper[column] > thresh)]
-
-    # Drop features
-    X_train = X_train.drop(columns_to_drop, axis = 1)
-    X_test = X_test.drop(columns_to_drop, axis = 1)
-
-    return X_train, X_test
+#import supporting functions used for cleaning
+from supporting_functions import check_duplicates, one_hot, add_full_interactions, add_interactions, sigmoid, linmap, filter_features
 
 #%%  main function for cleaning
 def clean_data(df,target_column):
@@ -135,10 +67,10 @@ def clean_data(df,target_column):
     columns_to_scale = df.select_dtypes(include='number').columns.drop(target_column) #identify the numberic columns
   
     #remove outliers from the training set
-    outlier_trheshold = X_train['column_name'].median()+(X_train['column_name'].std()*3)
-    print(str(np.sum(X_train['column_name'] > outlier_trheshold)) + " outliers detected")
-    X_train = X_train[X_train['column_name'] < outlier_trheshold]
-    X_train.reset_index(drop=True, inplace=True)    
+    outlier_threshold = X_train['fare'].median()+(X_train['fare'].std()*3)
+    print(str(np.sum(X_train['fare'] > outlier_threshold)) + " outliers detected")
+    X_train = X_train[X_train['fare'] < outlier_threshold]
+    X_train.reset_index(drop=True, inplace=True)   
 
     #range normalization
     scaler = MinMaxScaler()
