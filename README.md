@@ -12,7 +12,7 @@ List of files:
 - `skeleton_fit_linear_model.py`: same as above but python script
 - `example_fit_linear_model.ipynb`: example of modified template to procduce functional pipeline
 - `example_fit_nonlinear_model.ipynb`: another example, this time with a non-linear model (xgboost)
-
+- `supporting_functions.py`: file that contains helper functions for data cleaning and feature filtering
 
 ### **Installation, for `macOS`** do the following: 
 
