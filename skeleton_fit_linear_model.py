@@ -83,10 +83,8 @@ def clean_data(df,target_column):
     X_test  = pd.concat([X_test_scaled, X_test.drop(columns_to_scale,axis=1)], axis=1)
 
     #separate the target
-    y_train = X_train[target_column]
-    X_train = X_train.drop(target_column,axis=1)
-    y_test = X_test[target_column]
-    X_test = X_test.drop(target_column,axis=1)
+    y_train = X_train.pop(target_column)
+    y_test  = X_test.pop(target_column)
 
     return X_train, X_test, y_train, y_test
 
