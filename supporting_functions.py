@@ -1,7 +1,9 @@
 #%% import dependencies
 import numpy as np
 import pandas as pd
+from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import PolynomialFeatures
+import matplotlib.pyplot as plt
 
 
 #%% functions for preprocessing
@@ -141,4 +143,91 @@ def filter_features(X_train,X_test,thresh=0.95):
     X_train = X_train.drop(columns_to_drop, axis = 1)
     X_test = X_test.drop(columns_to_drop, axis = 1)
 
-    return X_train, X_test
+    # Print the number of features to be dropped
+    num_features_dropped = len(columns_to_drop)
+    if num_features_dropped > 0:
+        print(f"Dropping {num_features_dropped} features due to high correlation.")
+    else:
+        print("No features dropped based on correlation.")
+
+    return X_train, X_test, columns_to_drop
+
+def undo_log_transform(data):
+    """
+    Undo a log transform on a pandas Series or numpy array.
+    
+    Parameters:
+    data (pd.Series or np.ndarray): The data that has been log-transformed.
+    
+    Returns:
+    pd.Series or np.ndarray: The data after undoing the log transformation.
+    """
+    
+    # Define the transformation function
+    def transform(x):
+        if x <= 0:
+            return 0
+        else:
+            return np.exp(x)
+    
+    # If input is a pandas Series
+    if isinstance(data, pd.Series):
+        return data.apply(transform)
+    
+    # If input is a numpy array
+    elif isinstance(data, np.ndarray):
+        vectorized_transform = np.vectorize(transform)
+        return vectorized_transform(data)
+    
+    else:
+        raise TypeError("Input should be a pandas Series or numpy array")
+    
+def prediction_plots(y_train, y_test, y_pred_train, y_pred):
+    """
+    Evaluate a model by plotting scatter plots of true vs predicted values
+    with a least squares regression line and MSE. 
+    
+    Parameters:
+    y_train (array-like): True values for the training set.
+    y_test (array-like): True values for the test set.
+    y_pred_train (array-like): Predicted values for the training set.
+    y_pred (array-like): Predicted values for the test set.
+    """
+    _, axs = plt.subplots(1, 2, figsize=(12, 6))
+
+    mse_train = mean_squared_error(y_train, y_pred_train)
+    mse_test  = mean_squared_error(y_test,  y_pred)
+
+    # Scatter plot for the training set
+    axs[0].scatter(y_train, y_pred_train, alpha=0.5, label='Data')
+    
+    # Regression line for training set
+    m_train, b_train = np.polyfit(y_train, y_pred_train, 1)
+    axs[0].plot(y_train, m_train * y_train + b_train, color='blue', label=f'Fit: y={m_train:.2f}x + {b_train:.2f}')
+
+    # Perfect prediction line for reference
+    axs[0].plot([y_train.min(), y_train.max()], [y_train.min(), y_train.max()], 'r--', lw=2, label='Perfect Prediction')
+
+    axs[0].set_xlabel('True Values')
+    axs[0].set_ylabel('Predicted Values')
+
+    axs[0].set_title(f'Training Set (MSE: {mse_train:.2f})')
+    axs[0].legend()
+    
+    # Scatter plot for the test set
+    axs[1].scatter(y_test, y_pred, alpha=0.5, label='Data')
+    
+    # Regression line for test set
+    m_test, b_test = np.polyfit(y_test, y_pred, 1)
+    axs[1].plot(y_test, m_test * y_test + b_test, color='blue', label=f'Fit: y={m_test:.2f}x + {b_test:.2f}')
+    
+    # Perfect prediction line for reference
+    axs[1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2, label='Perfect Prediction')
+
+    axs[1].set_xlabel('True Values')
+    axs[1].set_ylabel('Predicted Values')
+    axs[1].set_title(f'Test Set (MSE: {mse_test:.2f})')
+    axs[1].legend()
+    
+    plt.tight_layout()
+    plt.show()
