@@ -154,6 +154,26 @@ def filter_features(X_train,X_test,thresh=0.95):
 
     return X_train, X_test, columns_to_drop
 
+def qcd_variance(series,window=12): 
+    """
+    Returns the quartile coefficient of dispersion of the 
+    rolling variance of a series in a given window.
+
+    Args:
+        series (pandas.DataFrame): Time series dataframe
+        window (int, optional): Size of rolling variance window. Defaults to 12. 
+    """
+    # rolling variance for a given window 
+    variances = series.rolling(window).var().dropna()
+    # first quartile
+    Q1 = np.percentile(variances, 25, interpolation='midpoint')
+    # third quartile
+    Q3 = np.percentile(variances, 75, interpolation='midpoint')
+    # quartile coefficient of dispersion 
+    qcd = round((Q3-Q1)/(Q3+Q1),6)
+    
+    print(f"quartile coefficient of dispersion: {qcd}")
+
 # %% plotting
   
 def prediction_plot(y_test, y_pred):
