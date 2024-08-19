@@ -19,9 +19,12 @@ from sklearn.metrics import confusion_matrix, accuracy_score, recall_score, prec
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.datasets import load_iris
 from sklearn.inspection import permutation_importance
+from sklearn.model_selection import GridSearchCV
+from sklearn.linear_model import LinearRegression, ElasticNet
+from sklearn.metrics import mean_squared_error, r2_score
 
 #import supporting functions used for cleaning
-from supporting_functions import check_duplicates, one_hot, add_full_interactions, add_interactions, sigmoid, linmap, filter_features,  plot_permutation_importance
+from supporting_functions import check_duplicates, one_hot, add_full_interactions, add_interactions, sigmoid, linmap, filter_features, plot_permutation_importance, prediction_plot
 
 #%%  main function for cleaning
 def clean_data(df,target_column):
@@ -68,9 +71,9 @@ def clean_data(df,target_column):
     columns_to_scale = df.select_dtypes(include='number').columns.drop(target_column) #identify the numberic columns
   
     #remove outliers from the training set
-    outlier_threshold = X_train['fare'].median()+(X_train['fare'].std()*3)
-    print(str(np.sum(X_train['fare'] > outlier_threshold)) + " outliers detected")
-    X_train = X_train[X_train['fare'] < outlier_threshold]
+    outlier_threshold = X_train['column_name'].median()+(X_train['column_name'].std()*3)
+    print(str(np.sum(X_train['column_name'] > outlier_threshold)) + " outliers detected")
+    X_train = X_train[X_train['column_name'] < outlier_threshold]
     X_train.reset_index(drop=True, inplace=True)   
 
     #range normalization
@@ -136,7 +139,7 @@ if __name__ == "__main__":
     #plot correlation between regressors
     sns.heatmap(X_train.corr(),vmin=-1,vmax=1)
 
-    #%% fit model
+    #%% fit model (classification)
 
     # instantiate logistic regression
     lr = LogisticRegression(max_iter=10000)
@@ -163,7 +166,36 @@ if __name__ == "__main__":
 
     clear_output(wait=False) #remove all the warnings, we don't need them here
 
-    #%% evaluate model
+    # %% fit model (regression)
+
+    # Initialize the LinearRegression model
+    mdl = ElasticNet()
+
+    # Define the parameter grid (in this case, there are no hyperparameters for LinearRegression, so we use an empty grid)
+    param_grid = {
+                'alpha': [0.01, 0.1, 1, 10],  # Regularization strength
+                'l1_ratio': [0.1, 0.5, 0.9]
+                }
+
+    #define cross-validation scheme
+    cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=3, random_state=1234)
+
+    # Set up GridSearchCV
+    grid_search = GridSearchCV(estimator=mdl, 
+                            param_grid=param_grid, 
+                            cv=5, 
+                            scoring='neg_mean_squared_error')
+
+    # Fit the model
+    grid_search.fit(X_train, y_train)
+
+    # Best model
+    best_model = grid_search.best_estimator_
+
+    # Predict on the test set
+    y_pred = best_model.predict(X_test)
+
+    #%% evaluate model (classification)
     cfm = confusion_matrix(y_test, y_pred)
     sns.heatmap(cfm, cmap='inferno', annot=True, fmt='d', linewidths=.5)
     plt.xlabel('Predicted')
@@ -198,4 +230,36 @@ if __name__ == "__main__":
 
     #compute and plot feature importance
     feature_importance = permutation_importance(Random_search, X_test,y_test,n_repeats=10,random_state=1234)
+    plot_permutation_importance(feature_importance,X_test.columns)
+
+    # %% evaluate the model (regression)
+
+    # Calculate residuals
+    residuals = y_test - y_pred
+
+    # Plot residuals
+    plt.figure(figsize=(8, 4))
+    plt.scatter(y_pred, residuals, alpha=0.75)
+    plt.axhline(y=0, color='r', linestyle='--')
+    plt.xlabel('Predicted Values (log)')
+    plt.ylabel('Residuals (log)')
+    plt.title('Residual Plot')
+    plt.show()
+
+    # Print the best parameters and the corresponding score
+    print("Best Parameters:", grid_search.best_params_)
+    print("Best Cross-Validation Score:", -grid_search.best_score_)
+
+    # Evaluate the model on the test set
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    print("Test Set Mean Squared Error:", mse)
+    print("Test Set R^2 Score:", r2)
+    plt.show()
+
+    #plot predicted versus true test set values
+    prediction_plot(y_test,y_pred)
+
+    #compute and plot feature importance
+    feature_importance = permutation_importance(grid_search, X_test,y_test,n_repeats=100,random_state=1234)
     plot_permutation_importance(feature_importance,X_test.columns)
