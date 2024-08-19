@@ -18,9 +18,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, accuracy_score, recall_score, precision_score, f1_score, roc_curve, roc_auc_score, classification_report
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.datasets import load_iris
+from sklearn.inspection import permutation_importance
 
 #import supporting functions used for cleaning
-from supporting_functions import check_duplicates, one_hot, add_full_interactions, add_interactions, sigmoid, linmap, filter_features
+from supporting_functions import check_duplicates, one_hot, add_full_interactions, add_interactions, sigmoid, linmap, filter_features,  plot_permutation_importance
 
 #%%  main function for cleaning
 def clean_data(df,target_column):
@@ -194,3 +195,7 @@ if __name__ == "__main__":
 
     print(f'Train ROC AUC Score: {roc_auc_score(y_train, y_prob_train[:,1])}')
     print(f'Test ROC AUC  Score: {roc_auc_score(y_test,  y_prob_test[:,1])}')
+
+    #compute and plot feature importance
+    feature_importance = permutation_importance(Random_search, X_test,y_test,n_repeats=10,random_state=1234)
+    plot_permutation_importance(feature_importance,X_test.columns)

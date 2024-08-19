@@ -117,7 +117,7 @@ def linmap(vector, new_min, new_max):
     scaled_vector = (vector - old_min) / (old_max - old_min) * (new_max - new_min) + new_min
     return scaled_vector
 
-# %% feature engineering
+# %% feature engineering and post-processing
 
 def filter_features(X_train,X_test,thresh=0.95):
     """Filters features in a design matrix by spearman correlation coefficient. Features that correlate above a threshold are removed, column-wise. 
@@ -204,3 +204,20 @@ def prediction_plot(y_test, y_pred):
     plt.legend()
     
     plt.tight_layout()
+
+def plot_permutation_importance(feature_importance,labels):
+    """Make boxplots of feature importance.
+
+    Args:
+        feature_importance (dict): Dictionary of feature importances.
+        labels (list): Names of the features.
+    """    
+    _, ax = plt.subplots(figsize=(7, 6))
+    perm_sorted_idx = feature_importance.importances_mean.argsort()
+
+    ax.boxplot(
+        feature_importance.importances[perm_sorted_idx].T,
+        vert=False,
+        labels=labels[perm_sorted_idx],
+    )
+    ax.axvline(x=0, color="k", linestyle="--")
